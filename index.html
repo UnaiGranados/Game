@@ -1,658 +1,736 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Predicción Llegada Sudoku - Guillermus, Julian y Francisca</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
-    body {
-      font-family: 'Outfit', sans-serif;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puntuación - El Sudoku</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas-confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 60%, #020617);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        .leader-glow {
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.3);
+        }
+        .glow-button {
+            box-shadow: 0 0 25px -5px rgba(79, 70, 229, 0.5);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 35px -2px rgba(99, 102, 241, 0.7);
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 flex flex-col justify-between">
+<body class="text-slate-100 min-h-screen pb-16 selection:bg-indigo-500 selection:text-white">
 
-  <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 sticky top-0 z-50">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center space-x-3">
-        <div class="bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
-          <i class="fa-solid fa-border-all text-white text-xl"></i>
-        </div>
-        <div>
-          <h1 class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-red-400 bg-clip-text text-transparent">
-            ¿A qué hora llega el Sudoku?
-          </h1>
-          <p class="text-xs text-slate-400">Guillermus • Julian • Francisca</p>
-        </div>
-      </div>
+    <!-- Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                    <i class="fas fa-poop text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        El Sudoku
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">Control de Predicciones y Tiempo de Cagado</p>
+                </div>
+            </div>
 
-      <!-- Live Clock -->
-      <div class="bg-slate-900/90 border border-slate-700/80 px-4 py-2 rounded-xl flex items-center gap-3 shadow-inner">
-        <i class="fa-regular fa-clock text-amber-400 text-sm animate-pulse"></i>
-        <div class="text-right">
-          <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Hora Actual</span>
-          <span id="liveClock" class="font-mono text-lg font-extrabold text-amber-200">00:00:00</span>
+            <!-- Acciones -->
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+                <button onclick="copiarResumen()" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-2 active:scale-95">
+                    <i class="fas fa-share-nodes"></i> Copiar Resumen
+                </button>
+                <button onclick="exportarDatos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-2 active:scale-95">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button onclick="document.getElementById('importInput').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-2 active:scale-95">
+                    <i class="fas fa-upload"></i>
+                </button>
+                <input type="file" id="importInput" class="hidden" accept=".json" onchange="importarDatos(event)">
+            </div>
         </div>
-      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 mt-8 space-y-8">
+
+        <!-- Banner Tiempo Total Cagando -->
+        <section class="glass-card rounded-3xl p-6 border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-slate-900/80 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl">
+                    💩
+                </div>
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Contador Acumulado</span>
+                    <h3 class="text-lg font-bold text-white">Tiempo Total Cagando</h3>
+                </div>
+            </div>
+            <div class="text-right flex items-baseline gap-3">
+                <div class="text-3xl font-extrabold font-mono text-amber-300" id="tiempo-total-cagando">0 min</div>
+                <div class="text-xs text-slate-400 font-medium" id="tiempo-total-horas">(0 hrs)</div>
+            </div>
+        </section>
+
+        <!-- Marcador Principal -->
+        <section>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <i class="fas fa-crown text-amber-400"></i> Marcador General
+                </h2>
+                <button onclick="confirmarReiniciar()" class="text-xs text-rose-400 hover:text-rose-300 font-medium transition flex items-center gap-1.5 opacity-80 hover:opacity-100">
+                    <i class="fas fa-rotate-left"></i> Reiniciar Juego
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="cards-container">
+                <!-- Generado por JS -->
+            </div>
+        </section>
+
+        <!-- Formulario de Entrada -->
+        <section class="glass-card rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-800 pb-5">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-stopwatch text-indigo-400"></i> Registro de Tiempos y Predicciones
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Registra la hora de ida al baño, la hora prevista por cada participante y la llegada.</p>
+                </div>
+                <!-- Switch modo sin pasarse -->
+                <label class="inline-flex items-center gap-2.5 cursor-pointer bg-slate-900/80 hover:bg-slate-900 px-3.5 py-2 rounded-2xl border border-slate-800 transition">
+                    <input type="checkbox" id="mode-no-exceed" class="sr-only peer">
+                    <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500 relative"></div>
+                    <span class="text-xs text-slate-300 font-semibold select-none">Regla "Sin Pasarse"</span>
+                </label>
+            </div>
+
+            <!-- Registro de Hora de Salida (Cuándo se va a cagar) -->
+            <div class="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-door-open text-amber-400 text-xl"></i>
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-amber-300">Hora de Ida al Baño (Salida)</div>
+                        <div class="text-[11px] text-slate-400">Introduce a qué hora se ha ido o pulsa el botón rápido</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="number" id="hora-ida" min="0" max="23" placeholder="HH" class="w-16 bg-slate-950/80 border border-slate-800 rounded-xl px-2 py-1.5 text-center font-mono text-sm font-bold text-white focus:outline-none focus:border-amber-400">
+                    <span class="text-slate-500 font-bold">:</span>
+                    <input type="number" id="min-ida" min="0" max="59" placeholder="MM" class="w-16 bg-slate-950/80 border border-slate-800 rounded-xl px-2 py-1.5 text-center font-mono text-sm font-bold text-white focus:outline-none focus:border-amber-400">
+                    <button type="button" onclick="fijarHoraIdaActual()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl transition shadow active:scale-95 whitespace-nowrap">
+                        <i class="fas fa-clock"></i> ¡SE HA IDO AHORA!
+                    </button>
+                </div>
+            </div>
+
+            <form id="prediction-form" onsubmit="procesarSudoku(event)" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    
+                    <!-- Guillermus -->
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80 hover:border-cyan-500/30 transition space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-cyan-400 text-sm flex items-center gap-2">
+                                <i class="fas fa-user-circle"></i> Guillermus
+                            </span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Opcional</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Hora Llegada</label>
+                                <input type="number" id="hora-Guillermus" min="0" max="23" placeholder="HH" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder:text-slate-700">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Minuto</label>
+                                <input type="number" id="min-Guillermus" min="0" max="59" placeholder="MM" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder:text-slate-700">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Julian -->
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80 hover:border-emerald-500/30 transition space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                                <i class="fas fa-user-circle"></i> Julian
+                            </span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Opcional</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Hora Llegada</label>
+                                <input type="number" id="hora-Julian" min="0" max="23" placeholder="HH" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition placeholder:text-slate-700">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Minuto</label>
+                                <input type="number" id="min-Julian" min="0" max="59" placeholder="MM" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition placeholder:text-slate-700">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Francisca -->
+                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80 hover:border-rose-500/30 transition space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-rose-400 text-sm flex items-center gap-2">
+                                <i class="fas fa-user-circle"></i> Francisca
+                            </span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Opcional</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Hora Llegada</label>
+                                <input type="number" id="hora-Francisca" min="0" max="23" placeholder="HH" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition placeholder:text-slate-700">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Minuto</label>
+                                <input type="number" id="min-Francisca" min="0" max="59" placeholder="MM" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-bold text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition placeholder:text-slate-700">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-3 text-base md:text-lg tracking-wide glow-button">
+                        <i class="fas fa-bullseye text-amber-400 text-xl"></i> ¡HA LLEGADO EL SUDOKU! (REGISTRAR LLEGADA)
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Gráfica de Progreso -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-line text-indigo-400"></i> Evolución de Puntos
+            </h2>
+            <div class="w-full h-60">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Historial -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <i class="fas fa-history text-indigo-400"></i> Historial de Intentos y Tiempo Cagando
+                </h2>
+                <span id="history-count" class="text-xs font-semibold text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/50">0 partidas</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800">
+                        <tr>
+                            <th class="p-3.5 rounded-l-xl">Fecha / Tiempos</th>
+                            <th class="p-3.5">Tiempo Cagando</th>
+                            <th class="p-3.5">Guillermus</th>
+                            <th class="p-3.5">Julian</th>
+                            <th class="p-3.5">Francisca</th>
+                            <th class="p-3.5 rounded-r-xl text-right">Ganador(es)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody" class="divide-y divide-slate-800/50">
+                        <!-- Generado por JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-history" class="text-center py-10 text-slate-500 text-sm font-medium">
+                Aún no hay registros de llegada de El Sudoku.
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast de Notificación -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-slate-700 text-white px-5 py-3.5 rounded-2xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 flex items-center gap-3 z-50 max-w-md">
+        <i class="fas fa-sparkles text-amber-400 text-lg"></i>
+        <span id="toast-msg" class="text-sm font-medium">Notificación</span>
     </div>
-  </header>
 
-  <main class="max-w-5xl mx-auto px-4 mt-6 space-y-8 w-full flex-grow">
+    <script>
+        const JUGADORES = ['Guillermus', 'Julian', 'Francisca'];
+        const COLORES = {
+            'Guillermus': { text: 'text-cyan-400', border: 'border-cyan-500/30', bg: 'bg-cyan-500/10', hex: '#22d3ee' },
+            'Julian': { text: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', hex: '#34d399' },
+            'Francisca': { text: 'text-rose-400', border: 'border-rose-500/30', bg: 'bg-rose-500/10', hex: '#fb7185' }
+        };
 
-    <!-- Rules Banner -->
-    <div class="bg-gradient-to-r from-amber-950/40 via-slate-900 to-orange-950/30 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-4 shadow-xl">
-      <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl hidden sm:block">
-        <i class="fa-solid fa-puzzle-piece text-2xl"></i>
-      </div>
-      <div class="flex-1 text-sm text-slate-300 leading-relaxed">
-        <h2 class="text-slate-100 font-bold text-base mb-1 flex items-center gap-2">
-          <i class="fa-solid fa-puzzle-piece text-amber-400 sm:hidden"></i>
-          Reglas del Juego
-        </h2>
-        1. Cada participante anota su hora estimada de llegada del Sudoku.<br>
-        2. En el momento en que llegue, pulsa el botón <strong class="text-amber-300">"¡HA LLEGADO EL SUDOKU!"</strong>.<br>
-        3. El sistema registrará ese segundo exacto y se otorgará <strong>+1 punto</strong> a quien (o quienes) haya quedado más cerca de la hora oficial de llegada.
-      </div>
-    </div>
+        let estado = {
+            puntos: { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 },
+            historial: []
+        };
 
-    <section>
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-          <i class="fa-solid fa-trophy text-amber-400"></i> Tabla de Marcador
-        </h3>
-        <span class="text-xs bg-slate-800/80 border border-slate-700 px-3 py-1 rounded-full text-slate-400">
-          Guardado automático en el navegador
-        </span>
-      </div>
+        let myChart = null;
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="playersGrid">
-        <!-- Rendered by JS -->
-      </div>
-    </section>
+        window.addEventListener('DOMContentLoaded', () => {
+            const guardado = localStorage.getItem('el_sudoku_game_data');
+            if (guardado) {
+                try { estado = JSON.parse(guardado); } catch(e) {}
+            }
+            inicializarGrafico();
+            renderizarTodo();
+        });
 
-    <section class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
-      <div class="flex items-center justify-between border-b border-slate-700/60 pb-4">
-        <div>
-          <h3 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <i class="fa-solid fa-stopwatch text-amber-400"></i> Predicciones de Llegada
-          </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Ingresen sus horas antes de que llegue el Sudoku</p>
-        </div>
-      </div>
+        function guardarEstado() {
+            localStorage.setItem('el_sudoku_game_data', JSON.stringify(estado));
+            renderizarTodo();
+        }
 
-      <form id="timeForm" onsubmit="event.preventDefault(); triggerSudokuArrival();" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        function renderizarTodo() {
+            renderizarMarcador();
+            renderizarHistorial();
+            actualizarGrafico();
+        }
 
-          <!-- Guillermus Input -->
-          <div class="bg-slate-900/60 p-4 rounded-xl border border-indigo-500/30 hover:border-indigo-500/60 transition">
-            <div class="flex items-center justify-between mb-3">
-              <label class="font-bold text-indigo-300 flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>
-                Guillermus
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="number" id="time_guillermus_h" min="0" max="23" placeholder="HH" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <span class="text-xl font-bold text-slate-500">:</span>
-              <input type="number" id="time_guillermus_m" min="0" max="59" placeholder="MM" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-          </div>
+        function fijarHoraIdaActual() {
+            const ahora = new Date();
+            document.getElementById('hora-ida').value = ahora.getHours();
+            document.getElementById('min-ida').value = ahora.getMinutes();
+            mostrarToast(`Hora de ida al baño fijada a las ${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`);
+        }
 
-          <!-- Julian Input -->
-          <div class="bg-slate-900/60 p-4 rounded-xl border border-purple-500/30 hover:border-purple-500/60 transition">
-            <div class="flex items-center justify-between mb-3">
-              <label class="font-bold text-purple-300 flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span>
-                Julian
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="number" id="time_julian_h" min="0" max="23" placeholder="HH" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
-              <span class="text-xl font-bold text-slate-500">:</span>
-              <input type="number" id="time_julian_m" min="0" max="59" placeholder="MM" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
-            </div>
-          </div>
+        function calcularEstadisticas() {
+            let stats = {
+                plenos: { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 },
+                promediosError: { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 },
+                participaciones: { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 },
+                tiempoTotalCagando: 0,
+                partidasConTiempo: 0
+            };
 
-          <!-- Francisca Input -->
-          <div class="bg-slate-900/60 p-4 rounded-xl border border-pink-500/30 hover:border-pink-500/60 transition">
-            <div class="flex items-center justify-between mb-3">
-              <label class="font-bold text-pink-300 flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-pink-500 inline-block"></span>
-                Francisca
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="number" id="time_francisca_h" min="0" max="23" placeholder="HH" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
-              <span class="text-xl font-bold text-slate-500">:</span>
-              <input type="number" id="time_francisca_m" min="0" max="59" placeholder="MM" required 
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-mono text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
-            </div>
-          </div>
+            let sumaError = { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 };
 
-        </div>
+            estado.historial.forEach(h => {
+                if (h.duracionCagandoMin !== null && h.duracionCagandoMin !== undefined) {
+                    stats.tiempoTotalCagando += h.duracionCagandoMin;
+                    stats.partidasConTiempo++;
+                }
 
-        <div class="pt-2 flex justify-center">
-          <button type="submit" 
-            class="w-full sm:w-auto bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white font-extrabold text-xl px-10 py-4 rounded-2xl shadow-xl shadow-orange-500/25 active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 border border-orange-400/40">
-            <i class="fa-solid fa-bullhorn text-2xl animate-bounce"></i>
-            ¡HA LLEGADO EL SUDOKU!
-          </button>
-        </div>
-      </form>
-    </section>
+                JUGADORES.forEach(j => {
+                    if (h.predicciones[j] !== null) {
+                        stats.participaciones[j]++;
+                        const diff = Math.abs(h.diferencias[j]);
+                        sumaError[j] += diff;
+                        if (diff === 0) stats.plenos[j]++;
+                    }
+                });
+            });
 
-    <div id="resultBanner" class="hidden bg-slate-800 border rounded-2xl p-5 shadow-2xl transition-all duration-300">
-      <!-- Rendered dynamically -->
-    </div>
+            JUGADORES.forEach(j => {
+                const count = stats.participaciones[j];
+                stats.promediosError[j] = count > 0 ? (sumaError[j] / count).toFixed(1) : '-';
+            });
 
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            return stats;
+        }
 
-      <!-- History Log Table -->
-      <div class="lg:col-span-2 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-            <i class="fa-solid fa-history text-amber-400"></i> Historial de Sudokus
-          </h3>
-          <span id="historyCount" class="text-xs text-slate-400 font-mono bg-slate-900 px-2.5 py-1 rounded-md border border-slate-700">0 registros</span>
-        </div>
+        function renderizarMarcador() {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
 
-        <div class="overflow-x-auto flex-1 max-h-80 overflow-y-auto rounded-xl border border-slate-700/60 bg-slate-900/50">
-          <table class="w-full text-sm text-left text-slate-300">
-            <thead class="text-xs uppercase bg-slate-800/90 text-slate-400 sticky top-0 border-b border-slate-700">
-              <tr>
-                <th scope="col" class="px-4 py-3">Llegada Real</th>
-                <th scope="col" class="px-4 py-3">Guillermus</th>
-                <th scope="col" class="px-4 py-3">Julian</th>
-                <th scope="col" class="px-4 py-3">Francisca</th>
-                <th scope="col" class="px-4 py-3 text-right">Ganador(es)</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody" class="divide-y divide-slate-800">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
-          <div id="emptyHistoryMsg" class="p-8 text-center text-slate-500 text-sm">
-            <i class="fa-solid fa-clock-rotate-left text-2xl mb-2 opacity-40 block"></i>
-            Aún no se ha registrado ninguna llegada de Sudoku.
-          </div>
-        </div>
-      </div>
+            const maxPuntos = Math.max(...Object.values(estado.puntos));
+            const stats = calcularEstadisticas();
 
-      <!-- Utilities -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4 flex flex-col justify-between">
-        <div>
-          <h3 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-3">
-            <i class="fa-solid fa-share-nodes text-orange-400"></i> Opciones
-          </h3>
-          <p class="text-xs text-slate-400 mb-4">
-            Copia la clasificación para el grupo o guarda una copia de seguridad.
-          </p>
+            // Actualizar banner global de tiempo cagando
+            const totalMin = stats.tiempoTotalCagando;
+            const horas = (totalMin / 60).toFixed(1);
+            document.getElementById('tiempo-total-cagando').textContent = `${totalMin} min`;
+            document.getElementById('tiempo-total-horas').textContent = `(${horas} hrs)`;
 
-          <div class="space-y-2.5">
-            <button onclick="shareScoreSummary()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-100 font-medium py-2.5 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2">
-              <i class="fa-regular fa-copy text-amber-400"></i> Copiar Puntuaciones (WhatsApp)
-            </button>
+            JUGADORES.forEach(jugador => {
+                const puntos = estado.puntos[jugador] || 0;
+                const esLider = puntos > 0 && puntos === maxPuntos;
+                const estilo = COLORES[jugador];
+
+                const card = document.createElement('div');
+                card.className = `glass-card glass-card-hover rounded-3xl p-5 border relative flex flex-col justify-between ${esLider ? 'leader-glow' : 'border-slate-800'}`;
+                
+                card.innerHTML = `
+                    ${esLider ? '<div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-md"><i class="fas fa-crown"></i> Líder</div>' : ''}
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-base ${estilo.text} flex items-center gap-1.5">
+                                <i class="fas fa-user text-xs opacity-70"></i> ${jugador}
+                            </span>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Puntos</span>
+                        </div>
+                        <div class="text-4xl font-extrabold text-white my-1 font-mono tracking-tight">${puntos}</div>
+                        
+                        <div class="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-[11px] text-slate-400 font-medium">
+                            <div>🎯 Plenos: <span class="font-bold text-slate-200">${stats.plenos[jugador]}</span></div>
+                            <div>📐 Error: <span class="font-bold text-slate-200">${stats.promediosError[jugador] !== '-' ? '±' + stats.promediosError[jugador] + 'm' : '-'}</span></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4 pt-3 border-t border-slate-800/60 justify-end">
+                        <button onclick="modificarPuntos('${jugador}', -1)" class="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 font-bold transition flex items-center justify-center text-xs active:scale-90">-1</button>
+                        <button onclick="modificarPuntos('${jugador}', 1)" class="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 font-bold transition flex items-center justify-center text-xs active:scale-90">+1</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderizarHistorial() {
+            const tbody = document.getElementById('history-tbody');
+            const emptyMsg = document.getElementById('empty-history');
+            const countLabel = document.getElementById('history-count');
             
-            <button onclick="exportData()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-100 font-medium py-2.5 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2">
-              <i class="fa-solid fa-download text-emerald-400"></i> Exportar Datos (JSON)
-            </button>
+            tbody.innerHTML = '';
+            countLabel.textContent = `${estado.historial.length} partidas`;
 
-            <label class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-100 font-medium py-2.5 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer">
-              <i class="fa-solid fa-upload text-sky-400"></i> Importar Datos (JSON)
-              <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importData(event)">
-            </label>
-          </div>
-        </div>
+            if (estado.historial.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            } else {
+                emptyMsg.classList.add('hidden');
+            }
 
-        <div class="pt-4 border-t border-slate-700/60">
-          <button onclick="confirmReset()" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-medium py-2 px-3 rounded-xl transition text-xs flex items-center justify-center gap-2">
-            <i class="fa-solid fa-trash-can"></i> Reiniciar Marcador
-          </button>
-        </div>
-      </div>
+            [...estado.historial].reverse().forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/30";
 
-    </section>
-  </main>
+                let jugCols = JUGADORES.map(j => {
+                    const pred = item.predicciones[j];
+                    if (pred === null) {
+                        return `<td class="p-3.5 text-xs text-slate-600 font-mono italic">No jugó</td>`;
+                    }
 
-  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+                    const diff = item.diferencias[j];
+                    const gano = item.ganadores.includes(j);
+                    const esPleno = diff === 0;
 
-  <!-- Confirmation Modal -->
-  <div id="confirmModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-800 border border-slate-700 max-w-sm w-full rounded-2xl p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-3 text-amber-400">
-        <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
-        <h4 class="font-bold text-slate-100 text-lg">¿Reiniciar marcador?</h4>
-      </div>
-      <p class="text-sm text-slate-300">
-        Se borrarán los puntos acumulados y el historial de Sudokus.
-      </p>
-      <div class="flex items-center justify-end gap-3 pt-2">
-        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-200">
-          Cancelar
-        </button>
-        <button onclick="executeReset()" class="px-4 py-2 rounded-xl text-sm font-medium bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30">
-          Sí, reiniciar
-        </button>
-      </div>
-    </div>
-  </div>
+                    return `
+                        <td class="p-3.5">
+                            <div class="font-mono text-xs ${gano ? 'text-amber-400 font-bold' : 'text-slate-300'} flex items-center gap-1.5">
+                                <span>${pred}</span>
+                                <span class="text-[10px] text-slate-500">(${diff >= 0 ? '+' : ''}${diff}m)</span>
+                                ${esPleno ? '🎯' : (gano ? '⭐' : '')}
+                            </div>
+                        </td>
+                    `;
+                }).join('');
 
-  <script>
-    const DEFAULT_PLAYERS = {
-      guillermus: { name: 'Guillermus', score: 0, wins: 0, color: 'indigo', border: 'border-indigo-500/40' },
-      julian: { name: 'Julian', score: 0, wins: 0, color: 'purple', border: 'border-purple-500/40' },
-      francisca: { name: 'Francisca', score: 0, wins: 0, color: 'pink', border: 'border-pink-500/40' }
-    };
+                const ganadoresStr = item.ganadores.length > 0 
+                    ? item.ganadores.join(', ')
+                    : 'Nadie';
 
-    let gameState = {
-      players: JSON.parse(JSON.stringify(DEFAULT_PLAYERS)),
-      history: []
-    };
+                const tiempoCagandoStr = item.duracionCagandoMin !== null && item.duracionCagandoMin !== undefined
+                    ? `<span class="text-amber-300 font-bold font-mono">💩 ${item.duracionCagandoMin} min</span>` 
+                    : `<span class="text-slate-600 text-xs italic">-</span>`;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadState();
-      startLiveClock();
-      renderScores();
-      renderHistory();
+                const horaIdaStr = item.horaIda ? `<span class="text-slate-500 text-[10px]">Ida: ${item.horaIda}</span>` : '';
 
-      ['guillermus', 'julian', 'francisca'].forEach(p => {
-        const hInput = document.getElementById(`time_${p}_h`);
-        const mInput = document.getElementById(`time_${p}_m`);
-        if (hInput && mInput) {
-          hInput.addEventListener('blur', () => formatPadInput(hInput, 23));
-          mInput.addEventListener('blur', () => formatPadInput(mInput, 59));
-        }
-      });
-    });
-
-    function startLiveClock() {
-      const clockEl = document.getElementById('liveClock');
-      function update() {
-        const now = new Date();
-        const hrs = String(now.getHours()).padStart(2, '0');
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        const secs = String(now.getSeconds()).padStart(2, '0');
-        clockEl.textContent = `${hrs}:${mins}:${secs}`;
-      }
-      update();
-      setInterval(update, 1000);
-    }
-
-    function formatPadInput(inputEl, maxVal) {
-      if (inputEl.value !== '') {
-        let val = parseInt(inputEl.value, 10);
-        if (isNaN(val) || val < 0) val = 0;
-        if (val > maxVal) val = maxVal;
-        inputEl.value = String(val).padStart(2, '0');
-      }
-    }
-
-    function triggerSudokuArrival() {
-      const now = new Date();
-      const actualHours = now.getHours();
-      const actualMinutes = now.getMinutes();
-      const actualSeconds = now.getSeconds();
-
-      const actualTotalMins = actualHours * 60 + actualMinutes;
-
-      const playerKeys = ['guillermus', 'julian', 'francisca'];
-      let minDifference = Infinity;
-      const tempDiffs = {};
-
-      // First pass: Calculate differences in minutes
-      playerKeys.forEach(key => {
-        const hVal = parseInt(document.getElementById(`time_${key}_h`).value, 10);
-        const mVal = parseInt(document.getElementById(`time_${key}_m`).value, 10);
-
-        const predTimeStr = `${String(hVal).padStart(2, '0')}:${String(mVal).padStart(2, '0')}`;
-        const predTotalMins = hVal * 60 + mVal;
-
-        // Handles circular time differences (e.g., around midnight 23:59 vs 00:01)
-        let diffMins = Math.abs(actualTotalMins - predTotalMins);
-        if (diffMins > 720) { 
-          diffMins = 1440 - diffMins;
+                tr.innerHTML = `
+                    <td class="p-3.5 font-mono text-xs text-slate-400">
+                        <div class="text-[10px] text-slate-500">${item.fecha}</div>
+                        ${horaIdaStr}
+                        <div class="text-indigo-400 font-bold">Llegada: ${item.horaLlegada}</div>
+                    </td>
+                    <td class="p-3.5">${tiempoCagandoStr}</td>
+                    ${jugCols}
+                    <td class="p-3.5 text-right">
+                        <span class="bg-amber-400/10 text-amber-400 border border-amber-400/20 text-xs px-2.5 py-1 rounded-lg font-bold">
+                            ${ganadoresStr}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        tempDiffs[key] = {
-          predTimeStr: predTimeStr,
-          diffMins: diffMins
-        };
+        function procesarSudoku(e) {
+            e.preventDefault();
 
-        if (diffMins < minDifference) {
-          minDifference = diffMins;
+            let participantesActivos = [];
+            let prediccionesStr = {};
+            let diferencias = {};
+
+            const ahora = new Date();
+            const horaReal = ahora.getHours();
+            const minReal = ahora.getMinutes();
+            const tiempoRealMin = horaReal * 60 + minReal;
+
+            const horaFormateada = `${String(horaReal).padStart(2, '0')}:${String(minReal).padStart(2, '0')}`;
+            const fechaFormateada = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+
+            // Procesar hora de ida
+            const hIdaVal = document.getElementById('hora-ida').value.trim();
+            const mIdaVal = document.getElementById('min-ida').value.trim();
+            let duracionCagandoMin = null;
+            let horaIdaStr = null;
+
+            if (hIdaVal !== '' && mIdaVal !== '') {
+                const hIda = parseInt(hIdaVal);
+                const mIda = parseInt(mIdaVal);
+                if (hIda >= 0 && hIda <= 23 && mIda >= 0 && mIda <= 59) {
+                    horaIdaStr = `${String(hIda).padStart(2, '0')}:${String(mIda).padStart(2, '0')}`;
+                    let tiempoIdaMin = hIda * 60 + mIda;
+                    duracionCagandoMin = tiempoRealMin - tiempoIdaMin;
+                    if (duracionCagandoMin < 0) duracionCagandoMin += 1440;
+                }
+            }
+
+            JUGADORES.forEach(j => {
+                const hVal = document.getElementById(`hora-${j}`).value.trim();
+                const mVal = document.getElementById(`min-${j}`).value.trim();
+
+                if (hVal !== '' && mVal !== '') {
+                    const hInput = parseInt(hVal);
+                    const mInput = parseInt(mVal);
+
+                    if (hInput >= 0 && hInput <= 23 && mInput >= 0 && mInput <= 59) {
+                        participantesActivos.push(j);
+                        prediccionesStr[j] = `${String(hInput).padStart(2, '0')}:${String(mInput).padStart(2, '0')}`;
+
+                        let tiempoPredMin = hInput * 60 + mInput;
+                        let diff = tiempoPredMin - tiempoRealMin;
+
+                        if (diff > 720) diff -= 1440;
+                        if (diff < -720) diff += 1440;
+
+                        diferencias[j] = diff;
+                    }
+                } else {
+                    prediccionesStr[j] = null;
+                    diferencias[j] = null;
+                }
+            });
+
+            if (participantesActivos.length < 2) {
+                alert("Debes ingresar la predicción de al menos 2 jugadores para registrar una ronda.");
+                return;
+            }
+
+            const modoSinPasarse = document.getElementById('mode-no-exceed').checked;
+            let minDiferencia = Infinity;
+
+            participantesActivos.forEach(j => {
+                const diff = diferencias[j];
+                const esDescartado = modoSinPasarse && diff > 0;
+
+                if (!esDescartado) {
+                    const diffAbs = Math.abs(diff);
+                    if (diffAbs < minDiferencia) {
+                        minDiferencia = diffAbs;
+                    }
+                }
+            });
+
+            let ganadores = [];
+            let huboPleno = false;
+
+            if (minDiferencia !== Infinity) {
+                participantesActivos.forEach(j => {
+                    const diff = diferencias[j];
+                    const esDescartado = modoSinPasarse && diff > 0;
+
+                    if (!esDescartado && Math.abs(diff) === minDiferencia) {
+                        ganadores.push(j);
+                        if (diff === 0) {
+                            estado.puntos[j] = (estado.puntos[j] || 0) + 2;
+                            huboPleno = true;
+                        } else {
+                            estado.puntos[j] = (estado.puntos[j] || 0) + 1;
+                        }
+                    }
+                });
+            }
+
+            if (ganadores.length > 0) {
+                confetti({
+                    particleCount: huboPleno ? 100 : 50,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            estado.historial.push({
+                fecha: fechaFormateada,
+                horaIda: horaIdaStr,
+                horaLlegada: horaFormateada,
+                duracionCagandoMin: duracionCagandoMin,
+                predicciones: prediccionesStr,
+                diferencias: diferencias,
+                ganadores: ganadores
+            });
+
+            guardarEstado();
+            
+            const msjExt = huboPleno ? "🎯 ¡PLENO EXACTO (+2 ptos)!" : "";
+            const msjCagado = duracionCagandoMin !== null ? ` (Tiempo cagando: ${duracionCagandoMin} min)` : '';
+            mostrarToast(`Sudoku registrado (${horaFormateada})${msjCagado}. ${msjExt} Ganador: ${ganadores.join(', ') || 'Nadie'}`);
+
+            JUGADORES.forEach(j => {
+                document.getElementById(`hora-${j}`).value = '';
+                document.getElementById(`min-${j}`).value = '';
+            });
+            document.getElementById('hora-ida').value = '';
+            document.getElementById('min-ida').value = '';
         }
-      });
 
-      const roundResult = {
-        timestamp: now.toLocaleDateString() + ' ' + now.toLocaleTimeString(),
-        actualTimeStr: `${String(actualHours).padStart(2, '0')}:${String(actualMinutes).padStart(2, '0')}:${String(actualSeconds).padStart(2, '0')}`,
-        predictions: {},
-        winners: []
-      };
-
-      // Second pass: Identify who was closest
-      playerKeys.forEach(key => {
-        const diff = tempDiffs[key].diffMins;
-        const isWinner = (diff === minDifference);
-
-        roundResult.predictions[key] = {
-          timeStr: tempDiffs[key].predTimeStr,
-          diffMins: diff,
-          isWinner: isWinner
-        };
-
-        if (isWinner) {
-          gameState.players[key].score += 1;
-          gameState.players[key].wins += 1;
-          roundResult.winners.push(gameState.players[key].name);
+        function modificarPuntos(jugador, cantidad) {
+            estado.puntos[jugador] = Math.max(0, (estado.puntos[jugador] || 0) + cantidad);
+            guardarEstado();
         }
-      });
 
-      gameState.history.unshift(roundResult);
-      saveState();
-
-      renderScores();
-      renderHistory();
-      renderResultBanner(roundResult);
-    }
-
-    function renderResultBanner(result) {
-      const banner = document.getElementById('resultBanner');
-      banner.classList.remove('hidden');
-
-      const winnersStr = result.winners.join(', ');
-      
-      banner.className = `border rounded-2xl p-5 shadow-2xl transition-all duration-300 bg-amber-950/40 border-amber-500/40 text-amber-200`;
-
-      let titleHTML = `
-        <div class="flex items-center gap-3 text-amber-400 font-extrabold text-xl mb-1">
-          <i class="fa-solid fa-trophy text-2xl text-amber-300 animate-bounce"></i>
-          ¡Sudoku Registrado a las ${result.actualTimeStr}!
-        </div>
-        <p class="text-sm text-slate-200">
-          Punto para: <strong class="text-white underline decoration-amber-400 font-bold text-base">${winnersStr}</strong> por aproximarse más a la hora real.
-        </p>
-      `;
-
-      let detailsHTML = `<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-700/60 text-xs">`;
-      Object.keys(result.predictions).forEach(key => {
-        const p = result.predictions[key];
-        const pName = gameState.players[key].name;
-        const badge = p.isWinner 
-          ? `<span class="text-emerald-400 font-bold ml-1"><i class="fa-solid fa-circle-check"></i> Ganador (+1)</span>` 
-          : `<span class="text-slate-400 font-mono ml-1">(${p.diffMins} min dif)</span>`;
-
-        detailsHTML += `
-          <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50 flex justify-between items-center">
-            <span class="font-medium text-slate-300">${pName}:</span>
-            <div>
-              <span class="font-mono text-white font-bold">${p.timeStr}</span>
-              ${badge}
-            </div>
-          </div>
-        `;
-      });
-      detailsHTML += `</div>`;
-
-      banner.innerHTML = titleHTML + detailsHTML;
-      banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function renderScores() {
-      const container = document.getElementById('playersGrid');
-      container.innerHTML = '';
-
-      const maxScore = Math.max(...Object.values(gameState.players).map(p => p.score));
-
-      Object.keys(gameState.players).forEach(key => {
-        const player = gameState.players[key];
-        const isLeader = player.score > 0 && player.score === maxScore;
-
-        const card = document.createElement('div');
-        card.className = `relative bg-slate-800/90 border ${player.border} rounded-2xl p-5 shadow-xl transition-all duration-300 flex flex-col justify-between`;
-
-        const badgeLeader = isLeader 
-          ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-               <i class="fa-solid fa-crown"></i> Líder
-             </span>` 
-          : '';
-
-        let colorClasses = {
-          indigo: 'from-indigo-500/20 to-indigo-600/5 text-indigo-400',
-          purple: 'from-purple-500/20 to-purple-600/5 text-purple-400',
-          pink: 'from-pink-500/20 to-pink-600/5 text-pink-400'
-        }[player.color];
-
-        card.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <span class="w-3.5 h-3.5 rounded-full bg-${player.color}-500 inline-block shadow-md"></span>
-                <h4 class="font-bold text-lg text-slate-100">${player.name}</h4>
-              </div>
-              ${badgeLeader}
-            </div>
-
-            <div class="bg-gradient-to-br ${colorClasses} rounded-xl p-4 my-2 text-center border border-slate-700/40">
-              <span class="text-xs uppercase tracking-wider text-slate-400 block mb-1 font-semibold">Puntos</span>
-              <span class="text-5xl font-extrabold text-white font-mono tracking-tight">${player.score}</span>
-            </div>
-          </div>
-
-          <div class="pt-3 border-t border-slate-700/50 flex items-center justify-between text-xs text-slate-400">
-            <span>Sudokus Ganados: <strong class="text-slate-200">${player.wins}</strong></span>
-            <div class="flex items-center gap-1">
-              <button onclick="manualScoreAdjust('${key}', -1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center font-bold text-sm" title="-1 pt">-</button>
-              <button onclick="manualScoreAdjust('${key}', 1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center font-bold text-sm" title="+1 pt">+</button>
-            </div>
-          </div>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    function manualScoreAdjust(playerKey, delta) {
-      if (gameState.players[playerKey]) {
-        gameState.players[playerKey].score = Math.max(0, gameState.players[playerKey].score + delta);
-        saveState();
-        renderScores();
-      }
-    }
-
-    function renderHistory() {
-      const tbody = document.getElementById('historyTableBody');
-      const emptyMsg = document.getElementById('emptyHistoryMsg');
-      const countEl = document.getElementById('historyCount');
-
-      tbody.innerHTML = '';
-      countEl.textContent = `${gameState.history.length} registro(s)`;
-
-      if (gameState.history.length === 0) {
-        emptyMsg.classList.remove('hidden');
-        return;
-      }
-      emptyMsg.classList.add('hidden');
-
-      gameState.history.forEach((entry, idx) => {
-        const tr = document.createElement('tr');
-        tr.className = idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/30';
-
-        const winnersBadges = entry.winners.map(w => `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded">${w}</span>`).join(' ');
-
-        tr.innerHTML = `
-          <td class="px-4 py-3 font-mono text-amber-300 font-bold whitespace-nowrap">
-            ${entry.actualTimeStr}
-            <span class="text-[10px] text-slate-500 block font-sans">${entry.timestamp}</span>
-          </td>
-          <td class="px-4 py-3 font-mono">
-            ${entry.predictions.guillermus.timeStr} 
-            ${entry.predictions.guillermus.isWinner ? '<i class="fa-solid fa-star text-amber-400 text-xs ml-1"></i>' : `<span class="text-[11px] text-slate-500">(${entry.predictions.guillermus.diffMins}m)</span>`}
-          </td>
-          <td class="px-4 py-3 font-mono">
-            ${entry.predictions.julian.timeStr}
-            ${entry.predictions.julian.isWinner ? '<i class="fa-solid fa-star text-amber-400 text-xs ml-1"></i>' : `<span class="text-[11px] text-slate-500">(${entry.predictions.julian.diffMins}m)</span>`}
-          </td>
-          <td class="px-4 py-3 font-mono">
-            ${entry.predictions.francisca.timeStr}
-            ${entry.predictions.francisca.isWinner ? '<i class="fa-solid fa-star text-amber-400 text-xs ml-1"></i>' : `<span class="text-[11px] text-slate-500">(${entry.predictions.francisca.diffMins}m)</span>`}
-          </td>
-          <td class="px-4 py-3 text-right whitespace-nowrap">
-            ${winnersBadges}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem('sudoku_game_scores', JSON.stringify(gameState));
-      } catch (e) {
-        console.error("Error guardando datos localmente", e);
-      }
-    }
-
-    function loadState() {
-      try {
-        const data = localStorage.getItem('sudoku_game_scores');
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (parsed && parsed.players) {
-            gameState = parsed;
-          }
+        function confirmarReiniciar() {
+            if (confirm("¿Quieres reiniciar todas las puntuaciones e historial a cero?")) {
+                estado = {
+                    puntos: { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 },
+                    historial: []
+                };
+                guardarEstado();
+                mostrarToast("El juego se ha reiniciado.");
+            }
         }
-      } catch (e) {
-        console.error("Error cargando datos almacenados", e);
-      }
-    }
 
-    function shareScoreSummary() {
-      const g = gameState.players.guillermus;
-      const j = gameState.players.julian;
-      const f = gameState.players.francisca;
+        function copiarResumen() {
+            const maxP = Math.max(...Object.values(estado.puntos));
+            const stats = calcularEstadisticas();
 
-      const text = `🧩 *Marcador Llegada del Sudoku* 🧩\n\n` +
-                   `• ${g.name}: ${g.score} pto(s)\n` +
-                   `• ${j.name}: ${j.score} pto(s)\n` +
-                   `• ${f.name}: ${f.score} pto(s)\n\n` +
-                   `Total Sudokus jugados: ${gameState.history.length}`;
+            let texto = `🧩 *MARCADOR - EL SUDOKU* 🧩\n\n`;
+            
+            JUGADORES.forEach(j => {
+                const p = estado.puntos[j] || 0;
+                const corona = (p > 0 && p === maxP) ? ' 👑' : '';
+                texto += `• *${j}*: ${p} pts${corona} (Plenos: ${stats.plenos[j]} | Error: ±${stats.promediosError[j]}m)\n`;
+            });
 
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        showToast("¡Resumen copiado al portapapeles!", "success");
-      } catch (err) {
-        showToast("No se pudo copiar automáticamente", "error");
-      }
-      document.body.removeChild(textArea);
-    }
+            texto += `\nPartidas registradas: ${estado.historial.length}`;
+            texto += `\nTiempo TOTAL cagando: 💩 ${stats.tiempoTotalCagando} min (${(stats.tiempoTotalCagando / 60).toFixed(1)} hrs)`;
 
-    function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `marcador_sudoku_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("JSON exportado con éxito", "success");
-    }
-
-    function importData(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const importedState = JSON.parse(e.target.result);
-          if (importedState && importedState.players) {
-            gameState = importedState;
-            saveState();
-            renderScores();
-            renderHistory();
-            document.getElementById('resultBanner').classList.add('hidden');
-            showToast("Datos importados con éxito", "success");
-          } else {
-            showToast("Formato de archivo JSON inválido", "error");
-          }
-        } catch (err) {
-          showToast("Error al importar el archivo", "error");
+            navigator.clipboard.writeText(texto).then(() => {
+                mostrarToast("Resumen copiado para WhatsApp.");
+            });
         }
-      };
-      reader.readAsText(file);
-      event.target.value = '';
-    }
 
-    function confirmReset() {
-      document.getElementById('confirmModal').classList.remove('hidden');
-    }
+        function exportarDatos() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(estado, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `puntuacion_el_sudoku_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
 
-    function closeConfirmModal() {
-      document.getElementById('confirmModal').classList.add('hidden');
-    }
+        function importarDatos(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    function executeReset() {
-      gameState = {
-        players: JSON.parse(JSON.stringify(DEFAULT_PLAYERS)),
-        history: []
-      };
-      saveState();
-      renderScores();
-      renderHistory();
-      document.getElementById('resultBanner').classList.add('hidden');
-      closeConfirmModal();
-      showToast("Marcador reiniciado a cero", "info");
-    }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed.puntos && parsed.historial) {
+                        estado = parsed;
+                        guardarEstado();
+                        mostrarToast("Datos cargados correctamente.");
+                    } else {
+                        alert("Archivo no válido.");
+                    }
+                } catch(err) {
+                    alert("Error al cargar el archivo.");
+                }
+            };
+            reader.readAsText(file);
+        }
 
-    function showToast(message, type = "info") {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
+        function inicializarGrafico() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Inicio'],
+                    datasets: JUGADORES.map(j => ({
+                        label: j,
+                        data: [0],
+                        borderColor: COLORES[j].hex,
+                        backgroundColor: COLORES[j].hex,
+                        tension: 0.3,
+                        borderWidth: 2.5,
+                        pointRadius: 3
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', weight: '600' } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.4)' } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.4)' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
 
-      let icon = "fa-circle-info text-amber-400";
-      if (type === "success") icon = "fa-circle-check text-emerald-400";
-      if (type === "error") icon = "fa-circle-xmark text-rose-400";
+        function actualizarGrafico() {
+            if (!myChart) return;
 
-      toast.className = `bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-sm flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0`;
-      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            let labels = ['Inicio'];
+            let acumulado = { 'Guillermus': [0], 'Julian': [0], 'Francisca': [0] };
+            let puntosTemp = { 'Guillermus': 0, 'Julian': 0, 'Francisca': 0 };
 
-      container.appendChild(toast);
+            estado.historial.forEach((item, idx) => {
+                labels.push(`#${idx + 1}`);
+                JUGADORES.forEach(j => {
+                    if (item.ganadores.includes(j)) {
+                        const diff = item.diferencias[j];
+                        puntosTemp[j] += (diff === 0 ? 2 : 1);
+                    }
+                    acumulado[j].push(puntosTemp[j]);
+                });
+            });
 
-      setTimeout(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-      }, 10);
+            myChart.data.labels = labels;
+            myChart.data.datasets.forEach(ds => {
+                ds.data = acumulado[ds.label];
+            });
+            myChart.update();
+        }
 
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
-  </script>
+        function mostrarToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toastMsg.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+    </script>
 </body>
 </html>
